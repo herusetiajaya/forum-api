@@ -1,10 +1,11 @@
 class ShowThreadUseCase {
   constructor({
-    threadRepository, commentRepository, replyRepository,
+    threadRepository, commentRepository, replyRepository, likeRepository,
   }) {
     this._threadRepository = threadRepository;
     this._commentRepository = commentRepository;
     this._replyRepository = replyRepository;
+    this._likeRepository = likeRepository;
   }
 
   async execute(useCasePayload) {
@@ -14,9 +15,10 @@ class ShowThreadUseCase {
     const validatedComments = this._validateDeletedComment(comments);
     const validatedReplies = this._validateDeletedReply(replies);
     const commentsWithReplies = this._addReplyToComment(validatedComments, validatedReplies);
+    const commentsWithRepliesAndLikeCount = await this._addLikeCountToComment(commentsWithReplies);
     return {
       ...thread,
-      comments: commentsWithReplies,
+      comments: commentsWithRepliesAndLikeCount,
     };
   }
 
@@ -53,6 +55,15 @@ class ShowThreadUseCase {
         }
         delete reply.comment_id;
       }
+    }
+    return comments;
+  }
+
+  async _addLikeCountToComment(comments) {
+    // eslint-disable-next-line no-restricted-syntax
+    for (const comment of comments) {
+      // eslint-disable-next-line no-await-in-loop
+      comment.likeCount = await this._likeRepository.getLikeCount(comment.id);
     }
     return comments;
   }
